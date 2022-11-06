@@ -247,7 +247,7 @@ local function is_allowed_dir()
   return false
 end
 
-local function get_session_file_name(sessions_dir)
+local function get_session_file_name(sessions_dir, name)
   local session = sessions_dir and sessions_dir ~= "" and sessions_dir or nil
 
   if Lib.is_empty(sessions_dir) then
@@ -267,7 +267,11 @@ local function get_session_file_name(sessions_dir)
       branch_name = Lib.escape_branch_name(branch_name ~= "" and "_" .. branch_name or "")
       session_name = string.format("%s%s", session_name, branch_name)
     end
-    return string.format(sessions_dir .. "%s.vim", session_name)
+    if name then
+      return string.format(sessions_dir .. "%s\\%%%s.vim", session_name, name)
+    else
+      return string.format(sessions_dir .. "%s.vim", session_name)
+    end
   end
 end
 
@@ -307,7 +311,7 @@ end
 function AutoSession.AutoSaveSession(sessions_dir)
   if auto_save_conditions_met() then
     if not is_auto_create_enabled() then
-      local session_file_name = get_session_file_name(sessions_dir)
+      local session_file_name = get_session_file_name(sessions_dir, nil)
       if not Lib.is_readable(session_file_name) then
         return
       end
@@ -429,7 +433,26 @@ vim.api.nvim_create_user_command("Autosession", handle_autosession_command, { na
 ---@param auto boolean
 function AutoSession.SaveSession(sessions_dir, auto)
   Lib.logger.debug "==== SaveSession"
-  local session_file_name = get_session_file_name(sessions_dir)
+  local session_file_name = get_session_file_name(sessions_dir, nil)
+
+  local pre_cmds = AutoSession.get_cmds "pre_save"
+  run_hook_cmds(pre_cmds, "pre-save")
+
+  vim.cmd("mks! " .. session_file_name)
+
+  save_extra_cmds(session_file_name)
+  message_after_saving(session_file_name, auto)
+
+  local post_cmds = AutoSession.get_cmds "post_save"
+  run_hook_cmds(post_cmds, "post-save")
+end
+
+--Saves the session, overriding if previously existing.
+---@param sessions_dir string?
+---@param auto boolean
+function AutoSession.SaveSessionName(name, auto)
+  Lib.logger.debug "==== SaveSession"
+  local session_file_name = get_session_file_name(sessions_dir, name)
 
   local pre_cmds = AutoSession.get_cmds "pre_save"
   run_hook_cmds(pre_cmds, "pre-save")
@@ -522,7 +545,7 @@ function AutoSession.RestoreSession(sessions_dir_or_file)
     local session_name = AutoSession.conf.auto_session_enable_last_session and Lib.conf.last_loaded_session
     local session_file_path
     if not session_name then
-      session_file_path = get_session_file_name(sessions_dir)
+      session_file_path = get_session_file_name(sessions_dir, nil)
       session_name = vim.fn.fnamemodify(session_file_path, ":t:r")
     else
       session_file_path = string.format(sessions_dir .. "%s.vim", session_name)

@@ -6,6 +6,7 @@ set cpo&vim " reset them to defaults
 let g:in_pager_mode = 0
 
 let LuaSaveSession = luaeval('require("auto-session").SaveSession')
+let LuaSaveSessionName = luaeval('require("auto-session").SaveSessionName')
 let LuaRestoreSession = luaeval('require("auto-session").RestoreSession')
 let LuaRestoreSessionFromFile = luaeval('require("auto-session").RestoreSessionFromFile')
 let LuaDeleteSessionByName = luaeval('require("auto-session").DeleteSessionByName')
@@ -20,6 +21,7 @@ endfunction
 
 " Available commands
 command! -nargs=* SaveSession call LuaSaveSession(expand('<args>'))
+command! -nargs=* SaveSessionName call LuaSaveSessionName(expand('<args>'))
 command! -nargs=* RestoreSession call LuaRestoreSession(expand('<args>'))
 command! -nargs=1 -complete=custom,CompleteSessions RestoreSessionFromFile call LuaRestoreSessionFromFile(expand('<args>'))
 command! -nargs=* -complete=custom,CompleteSessions DeleteSession call LuaDeleteSessionByName(<f-args>)
